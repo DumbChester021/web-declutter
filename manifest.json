@@ -3,7 +3,8 @@
   "name": "FB Feed Cleaner",
   "version": "1.1",
   "description": "Hides Facebook suggestions, tracks blocked posts, and allows whitelisting.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["*://*.facebook.com/*"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "FB Feed Cleaner"

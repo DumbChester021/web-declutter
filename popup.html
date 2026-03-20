@@ -3,21 +3,50 @@
     <head>
         <meta charset="utf-8" />
         <style>
+            * { box-sizing: border-box; }
             body {
                 font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-                width: 300px;
-                padding: 15px;
+                width: 320px;
+                padding: 14px;
                 color: #333;
                 margin: 0;
             }
             h3 {
-                margin-top: 0;
+                margin: 0 0 12px 0;
                 color: #1877f2;
                 font-size: 16px;
                 border-bottom: 1px solid #ddd;
                 padding-bottom: 8px;
-                margin-bottom: 10px;
             }
+
+            /* --- TABS --- */
+            .tabs {
+                display: flex;
+                gap: 4px;
+                margin-bottom: 12px;
+            }
+            .tab-btn {
+                flex: 1;
+                padding: 6px 4px;
+                border: 1px solid #ddd;
+                background: #f0f2f5;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: bold;
+                color: #65676b;
+                transition: background 0.15s, color 0.15s;
+            }
+            .tab-btn:hover { background: #e4e6e9; }
+            .tab-btn.active {
+                background: #1877f2;
+                color: #fff;
+                border-color: #1877f2;
+            }
+            .tab-panel { display: none; }
+            .tab-panel.active { display: block; }
+
+            /* --- STATS --- */
             .stat-container {
                 display: flex;
                 justify-content: space-between;
@@ -25,9 +54,7 @@
                 padding-bottom: 10px;
                 margin-bottom: 10px;
             }
-            .stat-box {
-                text-align: center;
-            }
+            .stat-box { text-align: center; }
             .stat-title {
                 font-size: 11px;
                 color: #65676b;
@@ -39,47 +66,64 @@
                 font-size: 18px;
             }
 
+            /* --- LISTS --- */
             h4 {
                 font-size: 13px;
                 margin: 0 0 5px 0;
                 color: #444;
             }
-            #history-list {
-                max-height: 180px;
+            .scroll-list {
+                max-height: 190px;
                 overflow-y: auto;
                 background: #f0f2f5;
                 border-radius: 6px;
                 padding: 5px;
                 font-size: 12px;
             }
-            .history-item {
+            .list-item {
                 padding: 6px;
                 border-bottom: 1px solid #ddd;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
-            .history-item:last-child {
-                border-bottom: none;
-            }
-            .history-name {
+            .list-item:last-child { border-bottom: none; }
+            .item-name {
                 font-weight: bold;
                 color: #1877f2;
                 text-decoration: none;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 140px;
+                max-width: 150px;
             }
-            .history-name:hover {
-                text-decoration: underline;
-            }
-            .history-time {
+            a.item-name:hover { text-decoration: underline; }
+            .item-time {
                 color: #888;
                 font-size: 10px;
             }
+            .empty-msg {
+                padding: 10px;
+                color: #888;
+                text-align: center;
+            }
 
-            button {
+            /* Remove button in whitelist */
+            .remove-btn {
+                background: none;
+                border: 1px solid #e41e3f;
+                color: #e41e3f;
+                border-radius: 4px;
+                padding: 2px 7px;
+                cursor: pointer;
+                font-size: 11px;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
+            .remove-btn:hover { background: #fff0f2; }
+
+            /* --- BUTTONS --- */
+            .action-btn {
                 width: 100%;
                 padding: 8px;
                 margin-top: 12px;
@@ -89,38 +133,56 @@
                 cursor: pointer;
                 font-weight: bold;
                 color: #4b4f56;
+                font-size: 13px;
             }
-            button:hover {
-                background: #d8dadf;
-            }
+            .action-btn:hover { background: #d8dadf; }
+            .action-btn.danger { background: #ffeaea; color: #c0392b; }
+            .action-btn.danger:hover { background: #fdd; }
         </style>
     </head>
     <body>
         <h3>FB Feed Cleaner</h3>
 
-        <div class="stat-container">
-            <div class="stat-box">
-                <div class="number" id="session">0</div>
-                <div class="stat-title">This Tab</div>
-            </div>
-            <div class="stat-box">
-                <div class="number" id="overall">0</div>
-                <div class="stat-title">All-Time</div>
-            </div>
-            <div class="stat-box">
-                <div class="number" style="color: #1877f2" id="whitelist-count">
-                    0
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="stats">📊 Stats</button>
+            <button class="tab-btn" data-tab="whitelist">⭐ Whitelist</button>
+            <button class="tab-btn" data-tab="blocked">🚫 Blocked</button>
+        </div>
+
+        <!-- STATS TAB -->
+        <div class="tab-panel active" id="tab-stats">
+            <div class="stat-container">
+                <div class="stat-box">
+                    <div class="number" id="session">0</div>
+                    <div class="stat-title">This Tab</div>
                 </div>
-                <div class="stat-title">Whitelisted</div>
+                <div class="stat-box">
+                    <div class="number" id="overall">0</div>
+                    <div class="stat-title">All-Time</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" style="color:#1877f2" id="whitelist-count">0</div>
+                    <div class="stat-title">Whitelisted</div>
+                </div>
             </div>
+
+            <h4>Recently Blocked</h4>
+            <div class="scroll-list" id="history-list"></div>
+
+            <button class="action-btn danger" id="clear-data">🗑 Clear Whitelist &amp; History</button>
         </div>
 
-        <h4>Recently Blocked</h4>
-        <div id="history-list">
-            <!-- History items will be injected here -->
+        <!-- WHITELIST TAB -->
+        <div class="tab-panel" id="tab-whitelist">
+            <h4>Whitelisted Pages</h4>
+            <div class="scroll-list" id="whitelist-list"></div>
         </div>
 
-        <button id="clear-data">Clear Whitelist & History</button>
+        <!-- BLOCKED TAB -->
+        <div class="tab-panel" id="tab-blocked">
+            <h4>All Blocked History</h4>
+            <div class="scroll-list" id="blocked-list"></div>
+        </div>
 
         <script src="popup.js"></script>
     </body>

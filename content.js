@@ -26,21 +26,35 @@ function findPostWrapper(element) {
   return null;
 }
 
-function addToHistory(posterName, posterLink) {
+let historyWritePending = false;
+const historyQueue = [];
+
+function flushHistoryQueue() {
+  if (historyWritePending || historyQueue.length === 0) return;
+  historyWritePending = true;
   chrome.storage.local.get(["blockedHistory"], (data) => {
     let history = data.blockedHistory || [];
-    // Prevent spamming the exact same post multiple times
-    if (history.length === 0 || history[0].name !== posterName) {
-      history.unshift({
-        name: posterName,
-        link: posterLink,
-        time: new Date().toLocaleTimeString(),
-      });
-      // Keep only the last 50 blocked posts so storage doesn't get full
-      if (history.length > 50) history = history.slice(0, 50);
-      chrome.storage.local.set({ blockedHistory: history });
+    while (historyQueue.length > 0) {
+      const { name, link, time } = historyQueue.shift();
+      if (history.length === 0 || history[0].name !== name) {
+        history.unshift({ name, link, time });
+        if (history.length > 50) history = history.slice(0, 50);
+      }
     }
+    chrome.storage.local.set({ blockedHistory: history }, () => {
+      historyWritePending = false;
+      flushHistoryQueue();
+    });
   });
+}
+
+function addToHistory(posterName, posterLink) {
+  historyQueue.push({
+    name: posterName,
+    link: posterLink,
+    time: new Date().toLocaleTimeString(),
+  });
+  flushHistoryQueue();
 }
 
 function processPost(profileNameNode) {
@@ -119,7 +133,11 @@ function processPost(profileNameNode) {
 
     // Text message
     const textSpan = document.createElement("span");
-    textSpan.innerHTML = `Post from <strong>"${posterName}"</strong> hidden. Reason: Suggestion <br><br>`;
+    const strong = document.createElement("strong");
+    strong.textContent = `"${posterName}"`;
+    textSpan.append("Post from ", strong, " hidden. Reason: Suggestion");
+    textSpan.appendChild(document.createElement("br"));
+    textSpan.appendChild(document.createElement("br"));
     controlBar.appendChild(textSpan);
 
     // --- BUTTON: Toggle Show/Hide Post ---
@@ -187,4 +205,14 @@ chrome.storage.local.get(["overallBlocked", "whitelist"], (data) => {
 
   // Now start watching the page
   observer.observe(document.body, { childList: true, subtree: true });
+});
+
+// Keep in-memory state fresh across tabs
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.whitelist) {
+    whitelist = changes.whitelist.newValue || [];
+  }
+  if (changes.overallBlocked) {
+    overallBlocked = changes.overallBlocked.newValue || 0;
+  }
 });
