@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "FB Feed Cleaner",
+  "version": "1.1",
+  "description": "Hides Facebook suggestions, tracks blocked posts, and allows whitelisting.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FB Feed Cleaner"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
